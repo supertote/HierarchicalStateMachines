@@ -1,6 +1,6 @@
 package com.totesoft.HierarchicalStateMachines
 
-trait StateContainer extends StateNode {
+trait StateContainer extends Node {
     
     type ExitEvent
     
@@ -18,7 +18,7 @@ trait StateContainer extends StateNode {
     case class Terminate(evt: ExitEvent) extends Transition
     
     
-    sealed trait ChildNode extends StateNode {
+    sealed trait ChildNode extends Node {
         
         type OuterTransition = StateContainer.this.InnerTransition
         
@@ -76,7 +76,7 @@ trait StateContainer extends StateNode {
     private[this] var prevState: Option[SubState] = None
     protected final def previousState: Option[SubState] = prevState
     
-    final def deepState: StateNode = {
+    final def deepState: Node = {
         currentState match {
             case Some(s : StateContainer) => s.deepState
             case Some(s)                  => s
@@ -120,7 +120,7 @@ trait StateContainer extends StateNode {
     }
     
     
-    private[this] def performTransition(evt: Any, node: StateNode, handleEvent: Any => InnerTransition): OuterTransition = {
+    private[this] def performTransition(evt: Any, node: Node, handleEvent: Any => InnerTransition): OuterTransition = {
         try {
             handleEvent(evt) match {
                 case Done =>

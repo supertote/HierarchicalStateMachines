@@ -5,7 +5,7 @@ package com.totesoft.HierarchicalStateMachines
   * The StateNode defines the common base of all elements composing a state machine hierarchy:
   * i.e. [[RootStateMachine]], [[StateContainer.ChildState]] and [[StateContainer.ChildStateMachine]]
   */
-trait StateNode {
+trait Node {
     
     /**
       * Encapsulates a list of methods method which will be triggered at convenient points within
@@ -140,7 +140,7 @@ trait StateNode {
           * [[RootStateMachine]] containing this instance is configured to do so
           */
         override def run(i: I) = {
-            root.eventLog(message + i + " in " + StateNode.this)
+            root.eventLog(message + i + " in " + Node.this)
             val result = super.run(i)
             root.eventLog("        => " + result)
             result
@@ -159,7 +159,7 @@ trait StateNode {
       * 
       * @param kind A value representing the type of lifecycle event, for tracing
       */
-    sealed class LifecycleHandler(kind: String) extends Handler[Any, Unit](_ => {}) {
+    sealed class LifecycleHandler(kind: String) extends Handler[Any, Unit](_ => {}){
         
         /**
           * @inheritdoc
@@ -168,7 +168,7 @@ trait StateNode {
           * this instance is configured to do so
           */
         override def run(e: Any) = {
-            root.lifecycleLog("    " + kind + " " + StateNode.this + " on " + e)
+            root.lifecycleLog("    " + kind + " " + Node.this + " on " + e)
             super.run(e)
         }
         
@@ -209,22 +209,21 @@ trait StateNode {
     /**
       * The path of this instance starting at it's '''root'''
       */
-    final lazy val path: String = {
+    final lazy val path: String =
         container match {
             case Some(c) => c.path + "." + name
             case None    => name
         }
-    }
+    
     
     /**
       * The [[RootStateMachine]] of which this instance is a part
       */
-    final lazy val root: RootStateMachine = {
+    final lazy val root: RootStateMachine =
         container match {
             case Some(c) => c.root
-            case None    => this.asInstanceOf[RootStateMachine]
+            case None    => Node.this.asInstanceOf[RootStateMachine]
         }
-    }
     
     
     /**

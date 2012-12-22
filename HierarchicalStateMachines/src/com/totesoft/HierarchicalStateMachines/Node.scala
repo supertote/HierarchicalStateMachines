@@ -2,14 +2,14 @@ package com.totesoft.HierarchicalStateMachines
 
 
 /**
-  * The StateNode defines the common base of all elements composing a state machine hierarchy:
-  * i.e. [[RootStateMachine]], [[StateContainer.ChildState]] and [[StateContainer.ChildStateMachine]]
+  * The Node trait defines the common base of all elements composing a state machine hierarchy:
+  * i.e. [[RootStateMachine]]s, [[StateContainer.ChildState]]s and [[StateContainer.ChildStateMachine]]s
   */
 trait Node {
     
     /**
-      * Encapsulates a list of methods method which will be triggered at convenient points within
-      * states and/or state machines.
+      * Encapsulates method(s) which will be triggered at convenient points within states and/or
+      * state machines.
       * 
       * A default method must be provided during instantiation.
       * 
@@ -44,15 +44,15 @@ trait Node {
         
         import scala.collection.mutable.ListBuffer
         
-        private[this] var frozen = false
-        private[this] var before: I => Unit = { i => }
-        private[this] var handler: I => O = default
-        private[this] var after: (I, O) => O = { (i, o) => o }
+        private[this] var frozen: Boolean       = false
+        private[this] var before: I => Unit     = { i => }
+        private[this] var handler: I => O       = default
+        private[this] var after: (I, O) => Unit = { (i, o) => }
         
         /**
           * Prevent further overriding of the encapsulated method
           */
-        def freeze = frozen = true
+        def freeze: Unit = frozen = true
         
         
         /**
@@ -65,7 +65,9 @@ trait Node {
            */
         protected def run(i: I): O = {
             before(i)
-            after(i, handler(i))
+            val result = handler(i)
+            after(i, result)
+            result
         }
         
         
@@ -106,9 +108,9 @@ trait Node {
           * 
           * @return The current instance so that a call to '''freeze''' can be chained
           */
-        def >>(h: (I, O) => O): Handler[I, O] = {
+        def >>(h: (I, O) => Unit): Handler[I, O] = {
             if (frozen) root.cantOverrideFrozenHandler("")
-            else        after = { (i, o) => h(i, after(i, o)) }
+            else        after = { (i, o) => after(i, o); h(i, o) }
             
             this
         }

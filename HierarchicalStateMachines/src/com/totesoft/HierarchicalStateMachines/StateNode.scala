@@ -42,8 +42,10 @@ trait StateNode {
       */
     sealed abstract class Handler[I, O](private var default: I => O) {
         
+        import scala.collection.mutable.ListBuffer
+        
         private[this] var frozen = false
-        private[this] var handlers = List[I => O]()
+        private[this] var handlers: ListBuffer[I => O] = ListBuffer[I => O]()
         
         
         /**
@@ -71,7 +73,10 @@ trait StateNode {
           * 
           * @return The result of the encapsulated last handler call
            */
-        protected def run(i: I): O = if (handlers.isEmpty) default(i) else run(i, handlers)
+        protected def run(i: I): O = {
+            if (handlers.isEmpty) default(i)
+            else run(i, handlers.toList)
+        }
         
         
         /**
@@ -83,7 +88,7 @@ trait StateNode {
           */
         def :=(h: I => O): Handler[I, O] = {
             if (frozen) root.cantOverrideFrozenHandler("")
-            else handlers = h :: Nil
+            else handlers += h
             
             this
         }
@@ -99,7 +104,7 @@ trait StateNode {
         def >>(h: I => O): Handler[I, O] = {
             if (frozen) root.cantOverrideFrozenHandler("")
             
-            handlers = (h :: handlers.reverse) reverse
+            h +=: handlers
             
             this
         }
@@ -115,7 +120,7 @@ trait StateNode {
         def <<(h: I => O): Handler[I, O] = {
             if (frozen) root.cantOverrideFrozenHandler("")
             
-            handlers = h :: handlers
+            handlers = ListBuffer(h)
             
             this
         }

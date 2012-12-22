@@ -1,4 +1,4 @@
 HierarchicalStateMachines
 =========================
 
-An implementation in Scala of HierarchicalStateMachines
+An implementation in Scala of Hierarchical State Machines.

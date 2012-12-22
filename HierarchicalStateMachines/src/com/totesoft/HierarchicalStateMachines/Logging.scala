@@ -1,7 +1,7 @@
 package com.totesoft.HierarchicalStateMachines
 
 /**
-  * A trait which, when mixed into a '''RootStateMachine''' to activate tracing to
+  * A trait which, when mixed into a '''RootStateMachine''' will activate tracing to
   * the standard output.
   */
 trait ConsoleLogging {

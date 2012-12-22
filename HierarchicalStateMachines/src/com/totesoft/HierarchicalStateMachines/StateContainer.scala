@@ -87,7 +87,7 @@ trait StateContainer extends StateNode {
     
     val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => Error("No event handler defined in " + this))
     
-	val terminate = new EventHandler[ExitEvent, OuterTransition]("    Terminating ", _ => terminateNotSet)
+    val terminate = new EventHandler[ExitEvent, OuterTransition]("    Terminating ", _ => terminateNotSet)
     
     
     protected[HierarchicalStateMachines] def terminateNotSet: OuterTransition
@@ -124,7 +124,7 @@ trait StateContainer extends StateNode {
         try {
             handleEvent(evt) match {
                 case Done =>
-                	outerDone
+                    outerDone
                 case Delegate =>
                     if (StateContainer.this eq node) outerDelegate
                     else performTransition(evt, StateContainer.this, e => events.run(evt))
@@ -165,10 +165,10 @@ trait StateContainer extends StateNode {
         
         currentState match {
             case Some(s) =>
-            	if (hType == HistoryType.DEEP)
-            	    s.onResume(evt)
-	            else
-	                s.onEnter(evt)
+                if (hType == HistoryType.DEEP)
+                    s.onResume(evt)
+                else
+                    s.onEnter(evt)
             case _ =>
         }
         

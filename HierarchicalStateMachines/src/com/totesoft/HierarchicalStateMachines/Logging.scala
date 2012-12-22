@@ -5,10 +5,10 @@ package com.totesoft.HierarchicalStateMachines
   * the standard output.
   */
 trait ConsoleLogging {
-	this: RootStateMachine =>
-	
-	final override def eventLog(message: => String) = println(message)
-	
+    this: RootStateMachine =>
+    
+    final override def eventLog(message: => String) = println(message)
+    
 }
 
 /**
@@ -19,8 +19,8 @@ trait ConsoleLogging {
   * in the '''RootStateMachine''').
   */
 trait LifecycleLogging {
-	this: RootStateMachine =>
-	
-	final override def lifecycleLog(message: => String) = eventLog(message)
-	
+    this: RootStateMachine =>
+    
+    final override def lifecycleLog(message: => String) = eventLog(message)
+    
 }

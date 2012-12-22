@@ -40,89 +40,89 @@ trait StateNode {
       * @tparam I The type of the method's sole input parameter
       * @tparam O The type of the method's result
       */
-	sealed abstract class Handler[I, O](private var default: I => O) {
-	    
-	    private[this] var frozen = false
-	    private[this] var handlers = List[I => O]()
-	    
-	    
-	    /**
-	      * Prevent further overriding of the encapsulated method
-	      */
-	    def freeze = frozen = true
-	    
-	    
-	    /**
-	      * Dispatch the specified input into all registered handlers
-	      */
-	    private def run(i: I, h: List[I => O]): O = {
-	        h match {
-	            case x :: Nil => x(i)
-	            case x :: xs  => x(i); run(i, xs)
-	        }
-	    }
-	    
-	    
-	    /**
-	      * Trigger the execution of the encapsulated methods, or of the default one if none
-	      * has been registered
-	      * 
-	      * @param i The input parameter
-	      * 
-	      * @return The result of the encapsulated last handler call
- 	      */
-	    protected def run(i: I): O = if (handlers.isEmpty) default(i) else run(i, handlers)
-	    
-	    
-	    /**
-	      * Override the list of encapsulated methods by the given method
-	      * 
-	      * @param h The new handler which will replace the existing ones
-	      * 
-	      * @return The current instance so that a call to '''freeze''' can be chained
-	      */
-	    def :=(h: I => O): Handler[I, O] = {
-	        if (frozen) root.cantOverrideFrozenHandler("")
-	        else handlers = h :: Nil
-	        
-	        this
-	    }
-	    
-	    
-	    /**
-	      * Add a new handler which will be triggered after all previously registered handlers
-	      * 
-	      * @param h The new handler to be appended
-	      * 
-	      * @return The current instance so that a call to '''freeze''' can be chained
-	      */
-	    def >>(h: I => O): Handler[I, O] = {
-	        if (frozen) root.cantOverrideFrozenHandler("")
-	        
-	        handlers = (h :: handlers.reverse) reverse
-	        
-	        this
-	    }
-	    
-	    
-	    /**
-	      * Add a new handler which will be triggered before all previously registered handlers
-	      * 
-	      * @param h The new handler to be prepended
-	      * 
-	      * @return The current instance so that a call to '''freeze''' can be chained
-	      */
-	    def <<(h: I => O): Handler[I, O] = {
-	        if (frozen) root.cantOverrideFrozenHandler("")
-	        
-	        handlers = h :: handlers
-	        
-	        this
-	    }
-	    
-	}
-	
-	
+    sealed abstract class Handler[I, O](private var default: I => O) {
+        
+        private[this] var frozen = false
+        private[this] var handlers = List[I => O]()
+        
+        
+        /**
+          * Prevent further overriding of the encapsulated method
+          */
+        def freeze = frozen = true
+        
+        
+        /**
+          * Dispatch the specified input into all registered handlers
+          */
+        private def run(i: I, h: List[I => O]): O = {
+            h match {
+                case x :: Nil => x(i)
+                case x :: xs  => x(i); run(i, xs)
+            }
+        }
+        
+        
+        /**
+          * Trigger the execution of the encapsulated methods, or of the default one if none
+          * has been registered
+          * 
+          * @param i The input parameter
+          * 
+          * @return The result of the encapsulated last handler call
+           */
+        protected def run(i: I): O = if (handlers.isEmpty) default(i) else run(i, handlers)
+        
+        
+        /**
+          * Override the list of encapsulated methods by the given method
+          * 
+          * @param h The new handler which will replace the existing ones
+          * 
+          * @return The current instance so that a call to '''freeze''' can be chained
+          */
+        def :=(h: I => O): Handler[I, O] = {
+            if (frozen) root.cantOverrideFrozenHandler("")
+            else handlers = h :: Nil
+            
+            this
+        }
+        
+        
+        /**
+          * Add a new handler which will be triggered after all previously registered handlers
+          * 
+          * @param h The new handler to be appended
+          * 
+          * @return The current instance so that a call to '''freeze''' can be chained
+          */
+        def >>(h: I => O): Handler[I, O] = {
+            if (frozen) root.cantOverrideFrozenHandler("")
+            
+            handlers = (h :: handlers.reverse) reverse
+            
+            this
+        }
+        
+        
+        /**
+          * Add a new handler which will be triggered before all previously registered handlers
+          * 
+          * @param h The new handler to be prepended
+          * 
+          * @return The current instance so that a call to '''freeze''' can be chained
+          */
+        def <<(h: I => O): Handler[I, O] = {
+            if (frozen) root.cantOverrideFrozenHandler("")
+            
+            handlers = h :: handlers
+            
+            this
+        }
+        
+    }
+    
+    
     /**
       * A specialized version of [[Handler]] for encapsulation methods triggered on input events
       * or exit events.
@@ -138,24 +138,24 @@ trait StateNode {
       * @tparam I The type of the method's sole input parameter
       * @tparam O The type of the method's result
       */
-	sealed class EventHandler[I, O](message: String, handler: I => O) extends Handler[I, O](handler){
-	    
-	    /**
-	      * @inheritdoc
-	      * 
-	      * Traces will be printed before and after the execution of the encapsulated method if the
-	      * [[RootStateMachine]] containing this instance is configured to do so
-	      */
-	    override def run(i: I) = {
-	        root.eventLog(message + i + " in " + StateNode.this)
-	        val result = super.run(i)
-	        root.eventLog("        => " + result)
-	        result
-	    }
-	    
-	}
-	
-	
+    sealed class EventHandler[I, O](message: String, handler: I => O) extends Handler[I, O](handler){
+        
+        /**
+          * @inheritdoc
+          * 
+          * Traces will be printed before and after the execution of the encapsulated method if the
+          * [[RootStateMachine]] containing this instance is configured to do so
+          */
+        override def run(i: I) = {
+            root.eventLog(message + i + " in " + StateNode.this)
+            val result = super.run(i)
+            root.eventLog("        => " + result)
+            result
+        }
+        
+    }
+    
+    
     /**
       * A specialized version of [[Handler]] for encapsulation methods triggered when state changes occur.
       * When triggered, the method will be passed the event which triggered the change.
@@ -166,25 +166,25 @@ trait StateNode {
       * 
       * @param kind A value representing the type of lifecycle event, for tracing
       */
-	sealed class LifecycleHandler(kind: String) extends Handler[Any, Unit](_ => {}) {
-	    
-	    /**
-	      * @inheritdoc
-	      * 
-	      * Traces will be printed before the encapsulated method if the [[RootStateMachine]] containing
-	      * this instance is configured to do so
-	      */
-	    override def run(e: Any) = {
-	        root.lifecycleLog("    " + kind + " " + StateNode.this + " on " + e)
-	        super.run(e)
-	    }
-	    
-	}
-	
-	
-	/**
-	  * Represent the type of transition that is computed when firing an event into this instance 
-	  */
+    sealed class LifecycleHandler(kind: String) extends Handler[Any, Unit](_ => {}) {
+        
+        /**
+          * @inheritdoc
+          * 
+          * Traces will be printed before the encapsulated method if the [[RootStateMachine]] containing
+          * this instance is configured to do so
+          */
+        override def run(e: Any) = {
+            root.lifecycleLog("    " + kind + " " + StateNode.this + " on " + e)
+            super.run(e)
+        }
+        
+    }
+    
+    
+    /**
+      * Represent the type of transition that is computed when firing an event into this instance 
+      */
     type OuterTransition
     
     

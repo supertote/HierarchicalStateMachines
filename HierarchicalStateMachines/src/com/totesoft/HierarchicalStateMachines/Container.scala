@@ -1,8 +1,8 @@
 package com.totesoft.HierarchicalStateMachines
 
 /**
-  * The NodeContainer trait defines the attributes and methods common to all state machines, be they
-  * [[RootStateMachine]]s and [[NodeContainer.ChildStateMachine]]
+  * The Container trait defines the attributes and methods common to all [[Nodes]] which contain
+  * other nodes, i.e. [[RootStateMachine]]s and [[Container.ChildStateMachine]]
   */
 trait Container extends Node {
     
@@ -73,23 +73,65 @@ trait Container extends Node {
     }
     
     
-    protected[this] var currentState: Option[SubState] = None
-    private[this] var historyState:   Option[SubState] = None
-    private[this] var prevState:      Option[SubState] = None
+    /**
+      * The current sub-state of this state machine
+      */
+    protected[HierarchicalStateMachines] var currentState: Option[SubState] = None
+    /**
+      * The last sub-state of this state machine saved when this state machine was exited
+      */
+    private[this] var historyState: Option[SubState] = None
+    /**
+      * The previous sub-state of this state machine
+      */
+    private[this] var prevState: Option[SubState] = None
+    /**
+      * The next sub-state of this state machine
+      */
+    private[this] var nexState:  Option[SubState] = None
     
     
+    /**
+      * The event handler of this state machine used to handle input events
+      */
     val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => Error("No event handler defined in " + Container.this))
+    /**
+      * The event handler of this state machine used to handle exit events
+      */
     val terminate = new EventHandler[ExitEvent, OuterTransition]("    Terminating ", _ => terminateNotSet)
     
     
+    /**
+      * Get the previous sub-state of this state machine. This value is only valid during a state
+      * change. Otherwise it will return None
+      * 
+      * @return the previous sub-state of this state machine or none if no state change is pending
+      */
     protected final def previousState: Option[SubState] = prevState
     
     
+    /**
+      * Get the next sub-state of this state machine. This value is only valid during a state
+      * change. Otherwise it will return None
+      * 
+      * @return the next sub-state of this state machine or none if no state change is pending
+      */
+    protected final def nextState: Option[SubState] = nexState
+    
+    
+    /**
+      * Get the deepest active (sub-)sub-state of this state machine
+      * 
+      * @return
+      * - this state machine if it has no sub-state
+      * - this state machine's sub-state if the sub-state is not a state machine
+      * - this state machine's sub-state's deepState otherwise
+      */
     final def deepState: Node = {
         currentState match {
             case Some(s : Container) => s.deepState
-            case Some(s)                  => s
-            case _                        => Container.this
+            case Some(s)             => s
+            case _                   => this
         }
     }
     
@@ -103,27 +145,67 @@ trait Container extends Node {
     protected[HierarchicalStateMachines] def outerDelegate: OuterTransition
     
     
+    /**
+      * Transforms the specified error message into a transition.
+      * 
+      * State machines can override this method to recover from errors which occur during
+      * event dispatching
+      * 
+      * @param err The error message
+      * 
+      * @return The resulting transition
+      */
     def onError(err: String): OuterTransition
     
     
+    /**
+      * Compute the initial sub-state of this state machine (upon entering into this state machine)
+      * 
+      * By default the result will be None.
+      * 
+      * @param evt The event which triggered entering this state machine
+      * 
+      * @return The initial sub-state or None if this state machine does not have an initial sub-state
+      */
     def initialState(evt: Any): Option[SubState] = None
     
     
+    /**
+      * Replace the current sub-state with the specified one and trigger the specified lifecyle
+      * event into the new state
+      * 
+      * @param evt The event which triggered the state change
+      * @param newState The new sub-state which will become the current sub-state of this state machine
+      * @param lifecycleChange A method which will trigger a lifecycle event into the new sub-state
+      */
     private[this] def changeState(evt: Any, newState: SubState, lifecycleChange: (SubState, Any) => Unit): Unit = {
+        nexState = if (newState != null) Some(newState) else None
+        
         currentState match {
             case Some(s) => s.onExit(evt)
-            case _ =>
+            case _       =>
         }
         
-        currentState = if (newState != null) Some(newState) else None
+        prevState = currentState
+        currentState = nexState
         
         currentState match {
             case Some(s) => lifecycleChange(s, evt)
-            case _ =>
+            case _       =>
         }
+        
+        nexState = None
+        prevState = None
     }
     
     
+    /** 
+      * Trigger the specified event handling on the specified event and apply the resulting transition
+      * 
+      * @param evt The input event
+      * @node The node in which the event handler is fired
+      * @handleEvent The method which will handle the event
+      */
     private[this] def performTransition(evt: Any, node: Node, handleEvent: Any => InnerTransition): OuterTransition = {
         try {
             handleEvent(evt) match {
@@ -153,17 +235,18 @@ trait Container extends Node {
     }
     
     
-    final override def onEvent(evt: Any) = {
-        currentState match {
-            case Some(subState) =>
-                performTransition(evt, subState, e => subState.onEvent(e))
-            case None =>
-                performTransition(evt, Container.this, e => events.run(e))
-        }
-    }
-    
-    
+    /**
+      * Triggers the enter or resume handler, depending on the specified history value
+      * 
+      * @param evt The event to which triggered the entering/resumption
+      * @param hType The history type which will allow to determine which handler to trigger
+      */
     private[this] final def onEnterOrResume(evt: Any, hType : HistoryType) = {
+        if (hType == HistoryType.NONE)
+            enter.run(evt)
+        else
+            resume.run(evt)
+            
         prevState = currentState
         currentState = if (hType == HistoryType.NONE) initialState(evt) else historyState
         
@@ -179,15 +262,23 @@ trait Container extends Node {
         historyState = None
     }
 
+    
+    final override def onEvent(evt: Any) = {
+        currentState match {
+            case Some(subState) =>
+                performTransition(evt, subState, e => subState.onEvent(e))
+            case None =>
+                performTransition(evt, Container.this, e => events.run(e))
+        }
+    }
+    
 
     final override def onEnter(evt: Any) = {
-        enter.run(evt)
         onEnterOrResume(evt, HistoryType.NONE)
     }
     
     
     final override def onResume(evt: Any) = {
-        resume.run(evt)
         onEnterOrResume(evt, historyType)
     }
     
@@ -195,7 +286,6 @@ trait Container extends Node {
     final override def onExit(evt: Any) = {
         historyState = currentState
         currentState = None
-        prevState = None
         
         historyState match {
             case Some(s) => s.onExit(evt)

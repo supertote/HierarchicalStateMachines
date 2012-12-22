@@ -2,7 +2,7 @@ package com.totesoft.HierarchicalStateMachines
 
 
 /**
-  * The StateNode defined the common base of all elements composing a state machine hierarchy:
+  * The StateNode defines the common base of all elements composing a state machine hierarchy:
   * i.e. [[RootStateMachine]], [[StateContainer.ChildState]] and [[StateContainer.ChildStateMachine]]
   */
 trait StateNode {

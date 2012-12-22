@@ -1,4 +1,3 @@
-
 package com.totesoft.HierarchicalStateMachines
 
 trait StateContainer extends StateNode {
@@ -37,7 +36,7 @@ trait StateContainer extends StateNode {
         
         final override def onEnter(evt: Any) = enter.run(evt)
         
-        final override def onResume(evt: Any) = resume.run(evt)
+        final override def onResume(evt: Any) = if (historyType == HistoryType.NONE) enter.run(evt) else resume.run(evt)
         
         final override def onExit(evt: Any) = exit.run(evt)
         

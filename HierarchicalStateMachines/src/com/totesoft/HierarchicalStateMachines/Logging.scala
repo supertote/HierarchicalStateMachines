@@ -1,5 +1,9 @@
 package com.totesoft.HierarchicalStateMachines
 
+/**
+  * A trait which, when mixed into a '''RootStateMachine''' to activate tracing to
+  * the standard output.
+  */
 trait ConsoleLogging {
 	this: RootStateMachine =>
 	
@@ -7,6 +11,13 @@ trait ConsoleLogging {
 	
 }
 
+/**
+  * A trait which, when mixed into a '''RootStateMachine''' will activate tracing of Lifecycle events.
+  * 
+  * Note: effective tracing will only occur if the '''RootStateMachine''' also overrides
+  * method '''eventLog''' (which can also be achieved by mixing trait '''ConsoleLogging'''
+  * in the '''RootStateMachine''').
+  */
 trait LifecycleLogging {
 	this: RootStateMachine =>
 	

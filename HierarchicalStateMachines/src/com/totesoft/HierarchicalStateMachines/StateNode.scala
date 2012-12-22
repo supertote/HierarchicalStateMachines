@@ -18,12 +18,12 @@ trait StateNode {
       * {{{
       * val handler: Handler[IN, OUT] = ...
       * <...>
-      * // Add a handler which will replace the already registered handlers
-      * handler := { in => { <do something with in>; <some result> } }
-      * // Add a handler which will be called after the already registered handlers
-      * handler >> { in => { <do something with in>; <some result> } }
       * // Add a handler which will be called before the already registered handlers
-      * handler << { in => { <do something with in>; <some result> } }
+      * handler << { i => { <do something with i, e.g. tracing> } }
+      * // Add a handler which will replace the already registered handler
+      * handler := { i => { <do something with i>; <some result> } }
+      * // Add a handler which will be called after the already registered handlers
+      * handler >> { (i, o) => { <do something with i and o, i.e. tracing>; o } }
       * }}}
       * 
       * Note that overriding/augmenting the methods can fail if it has been previously disabled with
@@ -40,29 +40,19 @@ trait StateNode {
       * @tparam I The type of the method's sole input parameter
       * @tparam O The type of the method's result
       */
-    sealed abstract class Handler[I, O](private var default: I => O) {
+    sealed abstract class Handler[I, O](default: I => O) {
         
         import scala.collection.mutable.ListBuffer
         
         private[this] var frozen = false
-        private[this] var handlers: ListBuffer[I => O] = ListBuffer[I => O]()
-        
+        private[this] var before: I => Unit = { i => }
+        private[this] var handler: I => O = default
+        private[this] var after: (I, O) => O = { (i, o) => o }
         
         /**
           * Prevent further overriding of the encapsulated method
           */
         def freeze = frozen = true
-        
-        
-        /**
-          * Dispatch the specified input into all registered handlers
-          */
-        private def run(i: I, h: List[I => O]): O = {
-            h match {
-                case x :: Nil => x(i)
-                case x :: xs  => x(i); run(i, xs)
-            }
-        }
         
         
         /**
@@ -74,21 +64,36 @@ trait StateNode {
           * @return The result of the encapsulated last handler call
            */
         protected def run(i: I): O = {
-            if (handlers.isEmpty) default(i)
-            else run(i, handlers.toList)
+            before(i)
+            after(i, handler(i))
         }
         
         
         /**
-          * Override the list of encapsulated methods by the given method
+          * Add a new handler which will be triggered before all previously registered handlers
           * 
-          * @param h The new handler which will replace the existing ones
+          * @param h The new handler to be prepended
+          * 
+          * @return The current instance so that a call to '''freeze''' can be chained
+          */
+        def <<(h: I => Unit): Handler[I, O] = {
+            if (frozen) root.cantOverrideFrozenHandler("")
+            else        before = { i => h(i); before(i) }
+            
+            this
+        }
+        
+        
+        /**
+          * Override the encapsulated method with the given method
+          * 
+          * @param h The new handler which will replace the existing one
           * 
           * @return The current instance so that a call to '''freeze''' can be chained
           */
         def :=(h: I => O): Handler[I, O] = {
             if (frozen) root.cantOverrideFrozenHandler("")
-            else handlers += h
+            else        handler = h
             
             this
         }
@@ -101,26 +106,9 @@ trait StateNode {
           * 
           * @return The current instance so that a call to '''freeze''' can be chained
           */
-        def >>(h: I => O): Handler[I, O] = {
+        def >>(h: (I, O) => O): Handler[I, O] = {
             if (frozen) root.cantOverrideFrozenHandler("")
-            
-            h +=: handlers
-            
-            this
-        }
-        
-        
-        /**
-          * Add a new handler which will be triggered before all previously registered handlers
-          * 
-          * @param h The new handler to be prepended
-          * 
-          * @return The current instance so that a call to '''freeze''' can be chained
-          */
-        def <<(h: I => O): Handler[I, O] = {
-            if (frozen) root.cantOverrideFrozenHandler("")
-            
-            handlers = ListBuffer(h)
+            else        after = { (i, o) => h(i, after(i, o)) }
             
             this
         }

@@ -1,7 +1,3 @@
-# HierarchicalStateMachines
-
-An Scala implementation of Hierarchical State Machines.
-
 ## Introduction
 In traditional [Finite State Machines](http://en.wikipedia.org/wiki/Finite-state_machine) you have only one level of nesting: a State Machine contains States.
 

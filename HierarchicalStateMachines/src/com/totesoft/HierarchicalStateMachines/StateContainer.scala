@@ -44,7 +44,7 @@ trait StateContainer extends StateNode {
     
     
     class State(override val name: String, override val historyType: HistoryType = HistoryType.NONE) extends ChildState {
-        events { _ => Delegate }
+        events := { _ => Delegate }
     }
     
     
@@ -52,10 +52,10 @@ trait StateContainer extends StateNode {
         this : StateContainer =>
         
             
-        final override def onDelegate = StateContainer.this.Delegate
+        final override def outerDelegate = StateContainer.this.Delegate
         
         
-        final override def onDone = StateContainer.this.Done
+        final override def outerDone = StateContainer.this.Done
         
         
         override def onError(err: String) = StateContainer.this.Error(err)
@@ -93,10 +93,10 @@ trait StateContainer extends StateNode {
     protected[HierarchicalStateMachines] def terminateNotSet: OuterTransition
     
     
-    protected[HierarchicalStateMachines] def onDone: OuterTransition
+    protected[HierarchicalStateMachines] def outerDone: OuterTransition
     
     
-    protected[HierarchicalStateMachines] def onDelegate: OuterTransition
+    protected[HierarchicalStateMachines] def outerDelegate: OuterTransition
     
     
     def onError(err: String): OuterTransition
@@ -124,16 +124,16 @@ trait StateContainer extends StateNode {
         try {
             handleEvent(evt) match {
                 case Done =>
-                	onDone
+                	outerDone
                 case Delegate =>
-                    if (StateContainer.this eq node) onDelegate
+                    if (StateContainer.this eq node) outerDelegate
                     else performTransition(evt, StateContainer.this, e => events.run(evt))
                 case MoveTo(newState) =>
                     changeState(evt, newState, (s, e) => s.onEnter(e))
-                    onDone
+                    outerDone
                 case Resume(newState) =>
                     changeState(evt, newState, (s, e) => s.onResume(e))
-                    onDone
+                    outerDone
                 case Terminate(exitEvent) =>
                     terminate.run(exitEvent)
                 case Error(error) =>

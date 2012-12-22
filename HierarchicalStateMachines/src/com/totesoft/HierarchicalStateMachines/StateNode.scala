@@ -8,20 +8,29 @@ package com.totesoft.HierarchicalStateMachines
 trait StateNode {
     
     /**
-      * Encapsulates a method which will be triggered at convenient points within states and/or state machines.
+      * Encapsulates a list of methods method which will be triggered at convenient points within
+      * states and/or state machines.
       * 
-      * A default method must be provided during instantiation. It can be overriden by user code as follows:
+      * A default method must be provided during instantiation.
+      * 
+      * The registered methods can be overriden/augmented by user code as follows:
       * 
       * {{{
       * val handler: Handler[IN, OUT] = ...
       * <...>
-      * handler { in => { println("doing something on " + in); <some result> } }
+      * // Add a handler which will replace the already registered handlers
+      * handler := { in => { <do something with in>; <some result> } }
+      * // Add a handler which will be called after the already registered handlers
+      * handler >> { in => { <do something with in>; <some result> } }
+      * // Add a handler which will be called before the already registered handlers
+      * handler << { in => { <do something with in>; <some result> } }
       * }}}
       * 
-      * Note that overriding the method can fail if it has been previously disabled with a call
-      * to method '''freeze'''. In this case, the behavior depends on the [[RootStateMachine]]
-      * of which this instance is part of: by default the overriding attempt will be simply ignored but a
-      * sub-class of [[RootStateMachine]] can decide to change that (e.g. by throwing an exception, logging)
+      * Note that overriding/augmenting the methods can fail if it has been previously disabled with
+      * a call to method '''freeze'''. In this case, the behavior depends on the [[RootStateMachine]]
+      * of which this instance is part of:
+      * - by default the overriding/augmentation attempt will be simply ignored;
+      * - a sub-class of [[RootStateMachine]] can decide to change that (e.g. throwing an exception)
       * by overriding method '''cantOverrideFrozenHandler''' method
       *
       * @constructor Construct a new instance which encapsulates the specified method
@@ -31,15 +40,24 @@ trait StateNode {
       * @tparam I The type of the method's sole input parameter
       * @tparam O The type of the method's result
       */
-	sealed abstract class Handler[I, O](private var handler: I => O) {
+	sealed abstract class Handler[I, O](private var default: I => O) {
 	    
 	    private[this] var frozen = false
+	    private[this] var handlers = List[I => O]()
 	    
 	    
 	    /**
 	      * Prevent further overriding of the encapsulated method
 	      */
 	    def freeze = frozen = true
+	    
+	    
+	    private def run(i: I, h: List[I => O]): O = {
+	        h match {
+	            case x :: Nil => x(i)
+	            case x :: xs => x(i); run(i, xs)
+	        }
+	    }
 	    
 	    
 	    /**
@@ -49,23 +67,23 @@ trait StateNode {
 	      * 
 	      * @return The result of the encapsulated method call
  	      */
-	    protected def apply(i: I): O = handler(i)
+	    protected def run(i: I): O = if (handlers.isEmpty) default(i) else run(i, handlers)
 	    
 	    
 	    /**
-	      * Override the encapsulated method
+	      * Override the list of encapsulated methods by the given method
 	      * 
 	      * @param h The new version of the encapsulated method
 	      * 
 	      * @return The current instance so that a call to '''freeze''' can be chained
 	      */
-	    def apply(h: I => O): Handler[I, O] = {
+	    def :=(h: I => O): Handler[I, O] = {
 	        if (frozen) root.cantOverrideFrozenHandler("")
-	        else handler = h
+	        else handlers = h :: Nil
 	        
 	        this
 	    }
-	        
+	    
 	}
 	
 	
@@ -92,9 +110,9 @@ trait StateNode {
 	      * Traces will be printed before and after the execution of the encapsulated method if the
 	      * [[RootStateMachine]] containing this instance is configured to do so
 	      */
-	    def run(i: I) = {
+	    override def run(i: I) = {
 	        root.eventLog(message + i + " in " + StateNode.this)
-	        val result = this(i)
+	        val result = super.run(i)
 	        root.eventLog("        => " + result)
 	        result
 	    }
@@ -120,9 +138,9 @@ trait StateNode {
 	      * Traces will be printed before the encapsulated method if the [[RootStateMachine]] containing
 	      * this instance is configured to do so
 	      */
-	    def run(e: Any) = {
+	    override def run(e: Any) = {
 	        root.lifecycleLog("    " + kind + " " + StateNode.this + " on " + e)
-	        this(e)
+	        super.run(e)
 	    }
 	    
 	}

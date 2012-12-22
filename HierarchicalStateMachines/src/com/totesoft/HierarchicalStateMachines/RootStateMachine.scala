@@ -45,10 +45,10 @@ trait RootStateMachine extends StateContainer {
     final override def container = None
     
     
-    final override def onDone = currentStatus
+    final override def outerDone = currentStatus
     
     
-    final override def onDelegate = InProgress
+    final override def outerDelegate = InProgress
     
     
     protected def throwOnError(err : String): Unit = {}
@@ -80,7 +80,7 @@ trait RootStateMachine extends StateContainer {
     }
     
     
-    terminate { e => doTerminate(e) } freeze
+    terminate := { e => doTerminate(e) } freeze
     
     onEnter(())
 }

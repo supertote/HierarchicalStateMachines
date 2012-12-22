@@ -11,7 +11,7 @@ class TestSM(override val name: String) extends StateMachine(name) with ConsoleL
     
     
     val State1: ChildState = new State("State1") {
-        events { _ match {
+        events := { _ match {
 	        case 2 => MoveTo(State2)
 	        case 3 => MoveTo(State3)
 	        case _ => Done
@@ -20,7 +20,7 @@ class TestSM(override val name: String) extends StateMachine(name) with ConsoleL
 
     
     val State2: ChildState = new State("State2") {
-        events { _ match {
+        events := { _ match {
 	        case 1 => MoveTo(State1)
 	        case 3 => MoveTo(State3)
 	        case _ => Done
@@ -36,7 +36,7 @@ class TestSM(override val name: String) extends StateMachine(name) with ConsoleL
 	    val SubState2: ChildState = new State("State2")
 	    
         
-	    events { _ match {
+	    events := { _ match {
 	        case 1 => MoveTo(SubState1)
 	        case 2 => MoveTo(SubState2)
 	        case 3 => Terminate(TO_STATE_1)
@@ -45,7 +45,7 @@ class TestSM(override val name: String) extends StateMachine(name) with ConsoleL
 	        case _ => Done
 	    }}
 	    
-	    terminate { _ match {
+	    terminate := { _ match {
             case COMPLETELY => TestSM.this.Terminate()
             case TO_STATE_1 => TestSM.this.MoveTo(State1)
             case TO_STATE_2 => TestSM.this.MoveTo(State2)
@@ -53,7 +53,7 @@ class TestSM(override val name: String) extends StateMachine(name) with ConsoleL
     }
     
     
-    events { _ match {
+    events := { _ match {
         case 1 => MoveTo(State1)
         case 2 => MoveTo(State2)
         case 3 => MoveTo(State3)

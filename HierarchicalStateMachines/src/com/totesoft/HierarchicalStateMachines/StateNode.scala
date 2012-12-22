@@ -52,20 +52,24 @@ trait StateNode {
 	    def freeze = frozen = true
 	    
 	    
+	    /**
+	      * Dispatch the specified input into all registered handlers
+	      */
 	    private def run(i: I, h: List[I => O]): O = {
 	        h match {
 	            case x :: Nil => x(i)
-	            case x :: xs => x(i); run(i, xs)
+	            case x :: xs  => x(i); run(i, xs)
 	        }
 	    }
 	    
 	    
 	    /**
-	      * Trigger the execution of the encapsulated method
+	      * Trigger the execution of the encapsulated methods, or of the default one if none
+	      * has been registered
 	      * 
 	      * @param i The input parameter
 	      * 
-	      * @return The result of the encapsulated method call
+	      * @return The result of the encapsulated last handler call
  	      */
 	    protected def run(i: I): O = if (handlers.isEmpty) default(i) else run(i, handlers)
 	    
@@ -73,13 +77,45 @@ trait StateNode {
 	    /**
 	      * Override the list of encapsulated methods by the given method
 	      * 
-	      * @param h The new version of the encapsulated method
+	      * @param h The new handler which will replace the existing ones
 	      * 
 	      * @return The current instance so that a call to '''freeze''' can be chained
 	      */
 	    def :=(h: I => O): Handler[I, O] = {
 	        if (frozen) root.cantOverrideFrozenHandler("")
 	        else handlers = h :: Nil
+	        
+	        this
+	    }
+	    
+	    
+	    /**
+	      * Add a new handler which will be triggered after all previously registered handlers
+	      * 
+	      * @param h The new handler to be appended
+	      * 
+	      * @return The current instance so that a call to '''freeze''' can be chained
+	      */
+	    def >>(h: I => O): Handler[I, O] = {
+	        if (frozen) root.cantOverrideFrozenHandler("")
+	        
+	        handlers = (h :: handlers.reverse) reverse
+	        
+	        this
+	    }
+	    
+	    
+	    /**
+	      * Add a new handler which will be triggered before all previously registered handlers
+	      * 
+	      * @param h The new handler to be prepended
+	      * 
+	      * @return The current instance so that a call to '''freeze''' can be chained
+	      */
+	    def <<(h: I => O): Handler[I, O] = {
+	        if (frozen) root.cantOverrideFrozenHandler("")
+	        
+	        handlers = h :: handlers
 	        
 	        this
 	    }

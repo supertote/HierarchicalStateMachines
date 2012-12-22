@@ -1,28 +1,30 @@
 package com.totesoft.HierarchicalStateMachines
 
-trait StateContainer extends Node {
+/**
+  * The NodeContainer trait defines the attributes and methods common to all state machines, be they
+  * [[RootStateMachine]]s and [[NodeContainer.ChildStateMachine]]
+  */
+trait Container extends Node {
     
     type ExitEvent
     
-    type InnerTransition = Transition
-    
     type SubState = ChildNode
     
-    sealed trait Transition
     
-    case object Done extends Transition
-    case object Delegate extends Transition
-    case class Error(err: String) extends Transition
-    case class MoveTo(state: SubState) extends Transition
-    case class Resume(state: SubState) extends Transition
-    case class Terminate(evt: ExitEvent) extends Transition
+    sealed trait InnerTransition
+    case object Done                      extends InnerTransition
+    case object Delegate                  extends InnerTransition
+    case class  Error(err: String)        extends InnerTransition
+    case class  MoveTo(state: SubState)   extends InnerTransition
+    case class  Resume(state: SubState)   extends InnerTransition
+    case class  Terminate(evt: ExitEvent) extends InnerTransition
     
     
     sealed trait ChildNode extends Node {
         
-        type OuterTransition = StateContainer.this.InnerTransition
+        type OuterTransition = Container.this.InnerTransition
         
-        final override def container = Some(StateContainer.this)
+        final override def container = Some(Container.this)
         
     }
     
@@ -49,45 +51,47 @@ trait StateContainer extends Node {
     
     
     trait ChildStateMachine extends ChildNode {
-        this : StateContainer =>
+        this : Container =>
         
             
-        final override def outerDelegate = StateContainer.this.Delegate
+        final override def outerDelegate = Container.this.Delegate
         
         
-        final override def outerDone = StateContainer.this.Done
+        final override def outerDone = Container.this.Done
         
         
-        override def onError(err: String) = StateContainer.this.Error(err)
+        override def onError(err: String) = Container.this.Error(err)
         
         
-        override def terminateNotSet = StateContainer.this.Error("No terminate handler defined in " + this)
+        override def terminateNotSet = Container.this.Error("No terminate handler defined in " + this)
         
     }
     
     
-    class StateMachine[T](override val name: String, override val historyType: HistoryType = HistoryType.NONE) extends StateContainer with ChildStateMachine {
+    class StateMachine[T](override val name: String, override val historyType: HistoryType = HistoryType.NONE) extends Container with ChildStateMachine {
         type ExitEvent = T
     }
     
     
-    protected[HierarchicalStateMachines] var currentState: Option[SubState] = None
-    private[this] var historyState: Option[SubState] = None
-    private[this] var prevState: Option[SubState] = None
+    protected[this] var currentState: Option[SubState] = None
+    private[this] var historyState:   Option[SubState] = None
+    private[this] var prevState:      Option[SubState] = None
+    
+    
+    val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => Error("No event handler defined in " + Container.this))
+    val terminate = new EventHandler[ExitEvent, OuterTransition]("    Terminating ", _ => terminateNotSet)
+    
+    
     protected final def previousState: Option[SubState] = prevState
+    
     
     final def deepState: Node = {
         currentState match {
-            case Some(s : StateContainer) => s.deepState
+            case Some(s : Container) => s.deepState
             case Some(s)                  => s
-            case _                        => this
+            case _                        => Container.this
         }
     }
-    
-    
-    val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => Error("No event handler defined in " + this))
-    
-    val terminate = new EventHandler[ExitEvent, OuterTransition]("    Terminating ", _ => terminateNotSet)
     
     
     protected[HierarchicalStateMachines] def terminateNotSet: OuterTransition
@@ -126,8 +130,8 @@ trait StateContainer extends Node {
                 case Done =>
                     outerDone
                 case Delegate =>
-                    if (StateContainer.this eq node) outerDelegate
-                    else performTransition(evt, StateContainer.this, e => events.run(evt))
+                    if (Container.this eq node) outerDelegate
+                    else performTransition(evt, Container.this, e => events.run(evt))
                 case MoveTo(newState) =>
                     changeState(evt, newState, (s, e) => s.onEnter(e))
                     outerDone
@@ -154,7 +158,7 @@ trait StateContainer extends Node {
             case Some(subState) =>
                 performTransition(evt, subState, e => subState.onEvent(e))
             case None =>
-                performTransition(evt, StateContainer.this, e => events.run(e))
+                performTransition(evt, Container.this, e => events.run(e))
         }
     }
     

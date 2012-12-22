@@ -1,6 +1,6 @@
 package com.totesoft.HierarchicalStateMachines
 
-class Orchestrator(override val name: String) extends StateMachine(name) with PartialEventHandler {
+class Orchestrator(override val name: String) extends RootStateMachine with PartialEventHandler {
     
     type SimpleChildActivity = this.ChildState
     
@@ -10,6 +10,6 @@ class Orchestrator(override val name: String) extends StateMachine(name) with Pa
     type ChildActivity = this.ChildStateMachine
     
     type Activity[T] = this.StateMachine[T]
-  
+    
 }
 

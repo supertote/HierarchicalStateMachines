@@ -37,7 +37,7 @@ trait Node {
       * 
       * @param handler The initial value of the encapsulated method
       * 
-      * @tparam I The type of the method's sole input parameter
+      * @tparam I The type of the method's input parameter
       * @tparam O The type of the method's result
       */
     sealed abstract class Handler[I, O](default: I => O) {
@@ -231,7 +231,7 @@ trait Node {
     /**
       * The [[StateContainer]] of which this instance is a a child
       */
-    def container: Option[StateContainer]
+    def container: Option[Container]
     
     
     /**

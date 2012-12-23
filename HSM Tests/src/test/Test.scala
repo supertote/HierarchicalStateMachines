@@ -19,25 +19,11 @@ object Test {
     }}
     
     
-    val State1: root.State = root.State("State1")
-    State1.events := { _ match {
-        case 2 => root.MoveTo(State2)
-        case 3 => root.MoveTo(State3)
-        case _ => root.Done
-    }}
+    val State1 = root.State("State1")
 
+    val State2 = root.State("State2")
     
-    val State2: root.State = root.State("State2")
-    State2.events := { _ match {
-        case 1 => root.MoveTo(State1)
-        case 3 => root.MoveTo(State3)
-        case _ => root.Done
-    }}
-    
-    
-    val State3: root.StateMachine[SubSMExit] = new root.StateMachine[SubSMExit] {
-        override val name = "State3"
-    }
+    val State3 = root.StateMachine[SubSMExit]("State3")
     State3.events := { _ match {
         case 1 => State3.MoveTo(SubState1)
         case 2 => State3.MoveTo(SubState2)
@@ -46,13 +32,11 @@ object Test {
         case 5 => State3.Terminate(COMPLETELY)
         case _ => State3.Done
     }}
-    
     State3.terminate := { _ match {
         case COMPLETELY => root.Terminate()
         case TO_STATE_1 => root.MoveTo(State1)
         case TO_STATE_2 => root.MoveTo(State2)
     }}
-    
     
     val SubState1 = State3.State("SubState1")
 

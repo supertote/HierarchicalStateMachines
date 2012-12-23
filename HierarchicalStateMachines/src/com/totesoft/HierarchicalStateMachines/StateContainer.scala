@@ -1,7 +1,7 @@
 package com.totesoft.HierarchicalStateMachines
 
 /**
-  * The NodeContainer trait defines the attributes and methods common to all [[Node]]s which contain
+  * The StateContainer trait defines the attributes and methods common to all [[Node]]s which contain
   * sub nodes, i.e. [[StateMachine]]s and [[Container.StateMachine]]s
   */
 trait StateContainer extends State {
@@ -54,7 +54,7 @@ trait StateContainer extends State {
     
     
     /**
-      * A trait defining the common attributes of sub states and sub state machines of a NodeContainer.
+      * A trait defining the common attributes of sub states and sub state machines of a [[StateContainer]].
       */
     sealed trait Child extends com.totesoft.HierarchicalStateMachines.State {
         
@@ -68,7 +68,7 @@ trait StateContainer extends State {
     
     
     /**
-      * A trait which can be mixed into a class/trait to define a sub state of a NodeContainer.
+      * A trait which can be mixed into a class/trait to define a sub state of a [[StateContainer]].
       */
     trait State extends Child {
         
@@ -96,7 +96,7 @@ trait StateContainer extends State {
 	      * @param historyType The history type of the new sub state
           */
         def apply(n: String, hType: HistoryType = HistoryType.NONE) = new State {
-            override val name = n
+            lazy val name = n
             override val historyType = hType
             events := { _ => Delegate }
         }
@@ -104,12 +104,9 @@ trait StateContainer extends State {
     
     
     /**
-      * A trait which can be mixed into a class/trait to define a sub state machine of a NodeContainer.
-      * 
-      * Note that when mixing this trait you must also mix the NodeContainer trait
+      * A trait which can be mixed into a class/trait to define a sub state machine of a [[StateContainer]].
       */
-    trait StateMachine[T] extends Child with StateContainer {
-        this : StateContainer =>
+    trait StateMachine[T] extends StateContainer with Child {
         
         type ExitEvent = T
         
@@ -122,6 +119,14 @@ trait StateContainer extends State {
         
         override def onError(err: String) = StateContainer.this.Error(err)
         
+    }
+    
+    
+    object StateMachine {
+        def apply[T](n: String, hType: HistoryType = HistoryType.NONE): StateMachine[T] = new StateMachine[T] {
+            lazy val name = n
+            override val historyType = hType
+        }
     }
     
     

@@ -1,6 +1,6 @@
 package test
 
-import com.totesoft.HierarchicalStateMachines.{StateMachine, FullConsoleLogging, NodeContainer, Exitable}
+import com.totesoft.HierarchicalStateMachines.{StateMachine, FullConsoleLogging}
 
 object Test {
 

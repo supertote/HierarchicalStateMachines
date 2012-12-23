@@ -13,15 +13,7 @@ object Test2 {
 //    class TestSM extends RootStateMachine("TestSM") with FullConsoleLogging
     
     
-    val rootSm = new { override val name = "TestSM" } with StateMachine with FullConsoleLogging {
-            
-	    events := { _ match {
-	        case 1 => MoveTo(State1)
-	        case 2 => MoveTo(State2)
-	        case 3 => MoveTo(State3)
-	        case _ => Done
-	    }}
-	    
+    val rootSm: StateMachine = new { override val name = "TestSM" } with StateMachine with FullConsoleLogging {
 	    
 	    val State1: State = State("State1")
 	    State1.events := { _ match {
@@ -58,12 +50,20 @@ object Test2 {
 		    }}
 	        
 	    }
-	    
+        
 	    State3.terminate := { _ match {
             case COMPLETELY => Terminate()
             case TO_STATE_1 => MoveTo(State1)
             case TO_STATE_2 => MoveTo(State2)
         }}
+	    
+	    
+	    events := { _ match {
+	        case 1 => MoveTo(State1)
+	        case 2 => MoveTo(State2)
+	        case 3 => MoveTo(State3)
+	        case _ => Done
+	    }}
 	    
     }
     

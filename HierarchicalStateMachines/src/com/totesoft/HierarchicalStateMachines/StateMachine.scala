@@ -4,7 +4,7 @@ package com.totesoft.HierarchicalStateMachines
   * A specialization of [[NodeContainer]] which can be mixed into a class/trait to
   * construct top-level state machines
   */
-trait StateMachine extends NodeContainer {
+trait StateMachine extends StateContainer {
     
     type ExitEvent = Unit
     

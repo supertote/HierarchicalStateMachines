@@ -5,7 +5,7 @@ package com.totesoft.HierarchicalStateMachines
   * The Node trait defines the common base of all elements composing a state machine hierarchy:
   * i.e. [[StateMachine]]s, [[StateContainer.State]]s and [[StateContainer.StateMachine]]s
   */
-trait Node {
+trait State {
     
     /**
       * Encapsulates method(s) which will be triggered at convenient points within states and/or
@@ -142,7 +142,7 @@ trait Node {
           * [[StateMachine]] containing this instance is configured to do so
           */
         override def run(i: I) = {
-            root.eventLog(message + i + " in " + Node.this)
+            root.eventLog(message + i + " in " + State.this)
             val result = super.run(i)
             root.eventLog("        => " + result)
             result
@@ -170,7 +170,7 @@ trait Node {
           * this instance is configured to do so
           */
         override def run(e: Any) = {
-            root.lifecycleLog("    " + kind + " " + Node.this + " on " + e)
+            root.lifecycleLog("    " + kind + " " + State.this + " on " + e)
             super.run(e)
         }
         
@@ -219,7 +219,7 @@ trait Node {
     /**
       * The event handler of this state machine used to handle input events
       */
-    val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => innerError("No event handler defined in " + this))
+    val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => innerError("No event handler defined in " + State.this))
     
     /**
       * The path of this instance starting at it's '''root'''
@@ -237,14 +237,14 @@ trait Node {
     final lazy val root: StateMachine =
         container match {
             case Some(c) => c.root
-            case None    => Node.this.asInstanceOf[StateMachine]
+            case None    => State.this.asInstanceOf[StateMachine]
         }
     
     
     /**
       * The [[StateContainer]] of which this instance is a a child
       */
-    def container: Option[NodeContainer]
+    def container: Option[StateContainer]
     
     
     /**

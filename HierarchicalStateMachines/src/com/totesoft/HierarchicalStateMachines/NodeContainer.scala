@@ -1,5 +1,10 @@
 package com.totesoft.HierarchicalStateMachines
 
+trait Exitable[T] {
+    type ExitEvent = T
+}
+
+
 /**
   * The NodeContainer trait defines the attributes and methods common to all [[Node]]s which contain
   * sub nodes, i.e. [[RootStateMachine]]s and [[Container.ChildStateMachine]]s
@@ -62,18 +67,22 @@ trait NodeContainer extends Node {
         
         final override def container = Some(NodeContainer.this)
         
+	    final override def outerError(msg: String): OuterTransition = Error(msg)
+	    
     }
     
     
     /**
       * A trait which can be mixed into a class/trait to define a sub state of a NodeContainer.
       */
-    trait ChildState extends Child {
+    trait State extends Child {
+        
+        type InnerTransition = NodeContainer.this.InnerTransition
         
 	    /**
 	      * The event handler of this state machine used to handle input events
 	      */
-        val events = new EventHandler[Any, OuterTransition]("    Handling ", _ => Error("No event handler defined in " + this))
+        val events = new EventHandler[Any, OuterTransition]("    Handling ", _ => outerError("No event handler defined in " + this))
         
         
         final override def onEvent(evt : Any) = events.run(evt)
@@ -87,16 +96,18 @@ trait NodeContainer extends Node {
     }
     
     
-    /**
-      * A Concrete implementation of a sub state
-      * 
-      * @constructor Construct a new sub state with the specified name and history type
-      * 
-      * @param name The name of the new sub state machine
-      * @param historyType The history type of the new state machine
-      */
-    class State(override val name: String, override val historyType: HistoryType = HistoryType.NONE) extends ChildState {
-        events := { _ => Delegate }
+    object State {
+        /**
+          * Construct a new sub state with the specified name and history type
+          * 
+	      * @param name The name of the new sub state
+	      * @param historyType The history type of the new sub state
+          */
+        def apply(n: String, hType: HistoryType = HistoryType.NONE) = new State {
+            override val name = n
+            override val historyType = hType
+            events := { _ => Delegate }
+        }
     }
     
     
@@ -105,10 +116,12 @@ trait NodeContainer extends Node {
       * 
       * Note that when mixing this trait you must also mix the NodeContainer trait
       */
-    trait ChildStateMachine extends Child {
+    trait StateMachine[T] extends Child with NodeContainer {
         this : NodeContainer =>
         
-            
+        type ExitEvent = T
+        
+        
         final override def outerDelegate = NodeContainer.this.Delegate
         
         
@@ -117,22 +130,6 @@ trait NodeContainer extends Node {
         
         override def onError(err: String) = NodeContainer.this.Error(err)
         
-        
-        override def terminateNotSet = NodeContainer.this.Error("No terminate handler defined in " + this)
-        
-    }
-    
-    
-    /**
-      * A Concrete implementation of a sub state machine
-      * 
-      * @constructor Construct a new sub state machine with the specified name and history type
-      * 
-      * @param name The name of the new sub state machine
-      * @param historyType The history type of the new state machine
-      */
-    class StateMachine[T](override val name: String, override val historyType: HistoryType = HistoryType.NONE) extends NodeContainer with ChildStateMachine {
-        type ExitEvent = T
     }
     
     
@@ -157,11 +154,11 @@ trait NodeContainer extends Node {
     /**
       * The event handler of this state machine used to handle input events
       */
-    val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => Error("No event handler defined in " + NodeContainer.this))
+    val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => innerError("No event handler defined in " + NodeContainer.this))
     /**
       * The event handler of this state machine used to handle exit events
       */
-    val terminate = new EventHandler[ExitEvent, OuterTransition]("    Terminating ", _ => terminateNotSet)
+    val terminate = new EventHandler[ExitEvent, OuterTransition]("    Terminating ", _ => outerError("No terminate handler defined in " + this))
     
     
     /**
@@ -197,10 +194,6 @@ trait NodeContainer extends Node {
             case _                   => NodeContainer.this
         }
     }
-    
-    
-    // TODO: Comment
-    protected[HierarchicalStateMachines] def terminateNotSet: OuterTransition
     
     
     /**
@@ -300,7 +293,7 @@ trait NodeContainer extends Node {
             case me : MatchError =>
                 onError("Unhandled event " + evt + " in " + path)
             case e : Throwable =>
-                onError(e.toString)
+                onError("Unhandled exception\n" + e.toString)
         }
     }
     
@@ -366,6 +359,14 @@ trait NodeContainer extends Node {
         
         exit.run(evt)
     }
+    
+    
+    /**
+      * Get an InnerTransition corresponding to the specified error
+      * 
+      * @param msg: the error message
+      */
+    protected[HierarchicalStateMachines] final def innerError(msg: String): InnerTransition = Error(msg)
     
 }
 

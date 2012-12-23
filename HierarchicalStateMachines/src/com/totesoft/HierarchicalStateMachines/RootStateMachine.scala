@@ -1,7 +1,7 @@
 package com.totesoft.HierarchicalStateMachines
 
 
-trait RootStateMachine extends NodeContainer {
+trait StateMachine extends NodeContainer {
     
     type ExitEvent = Unit
     
@@ -15,7 +15,7 @@ trait RootStateMachine extends NodeContainer {
     
     
     final def fire(evt : Any): Status = {
-        eventLog("Firing " + evt + " in " + RootStateMachine.this + " {")
+        eventLog("Firing " + evt + " in " + StateMachine.this + " {")
         
         var result = onEvent(evt)
         
@@ -65,9 +65,6 @@ trait RootStateMachine extends NodeContainer {
     }
     
     
-    override def terminateNotSet = InError("No terminate handler defined in " + RootStateMachine.this)
-    
-    
     private[this] def reset(on: Any) = {
         onExit(on)
         onEnter(on)
@@ -80,8 +77,18 @@ trait RootStateMachine extends NodeContainer {
     }
     
     
+    final override def outerError(msg: String): OuterTransition = InError(msg)
+    
+    
     terminate := { e => doTerminate(e) } freeze
     
     onEnter(())
 }
 
+
+object StateMachine {
+    def apply(n: String, hType: HistoryType = HistoryType.NONE) = new StateMachine {
+        override val name = n
+        override val historyType = hType
+    }
+}

@@ -178,7 +178,8 @@ trait Node {
     
     
     /**
-      * Represent the type of transition that is computed when firing an event into this instance 
+      * Represent the type of transition that is computed when firing an event into this instance
+      * from its container
       */
     type OuterTransition
     
@@ -221,10 +222,10 @@ trait Node {
     /**
       * The [[RootStateMachine]] of which this instance is a part
       */
-    final lazy val root: RootStateMachine =
+    final lazy val root: StateMachine =
         container match {
             case Some(c) => c.root
-            case None    => Node.this.asInstanceOf[RootStateMachine]
+            case None    => Node.this.asInstanceOf[StateMachine]
         }
     
     
@@ -261,6 +262,14 @@ trait Node {
       * @param evt The event to pass to the enter method
       */
     protected[HierarchicalStateMachines] def onEvent(evt : Any): OuterTransition
+    
+    
+    /**
+      * Get an OuterTransition corresponding to the specified error
+      * 
+      * @param msg: the error message
+      */
+    protected[HierarchicalStateMachines] def outerError(msg: String): OuterTransition
     
     
     override def toString = path

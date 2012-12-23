@@ -1,7 +1,7 @@
 package com.totesoft.HierarchicalStateMachines
 
 /**
-  * A specialization of [[NodeContainer]] which can be mixed into a class/trait to
+  * A specialization of [[StateContainer]] which can be mixed into a class/trait to
   * construct top-level state machines
   */
 trait StateMachine extends StateContainer {
@@ -50,55 +50,81 @@ trait StateMachine extends StateContainer {
     }
     
     
+    /**
+      * Log the specified message
+      * 
+      * @param message The message to log
+      */
     protected[HierarchicalStateMachines] def eventLog(message: => String) = {}
     
     
+    /**
+      * Log a lifecycle event described by the specified message
+      * 
+      * @param message The message to log
+      */
     protected[HierarchicalStateMachines] def lifecycleLog(message: => String) = {}
     
     
-    private[this] def currentStatus: Status = {
-        currentState match {
-            case Some(_) => InProgress
-            case None => Terminated
-        }
-    }
-    
-    
-    final override def container = None
-    
-    
-    final override def outerDone = currentStatus
-    
-    
-    final override def outerDelegate = InProgress
-    
-    
-    protected def throwOnError(err : String): Unit = {}
-    
-    
+    /**
+      * By default, when trying to override an event handler which is frozen in one of this
+      * state machine's sub-state will return an error, the attempt will simply be ignored.
+      * 
+      * To change this behavior, a top-level state machine can override this method to throw an
+      * exception instead
+      */
     protected[HierarchicalStateMachines] def cantOverrideFrozenHandler(err : String): Unit = {}
     
     
-    final override def onError(err: String) = {
-        throwOnError(err)
-        var result = InError(err)
-        reset(result)
-        result
-    }
+    /**
+      * By default, if firing an event within a state machine results in an error, the state machine will
+      * be exited and InError will be returned.
+      * 
+      * To change this behavior, a top-level state machine can override this method to throw an exception
+      * instead
+      */
+    protected def throwOnError(err : String): Unit = {}
     
     
+    /**
+      * Reset the state machine to its default state: i.e. exit the state machine
+      * and re-enter it
+      */
     private[this] def reset(on: Any) = {
         onExit(on)
         onEnter(on)
     }
     
     
+    final override def container = None
+    
+    
+    final override def outerDone = currentState match {
+        case Some(_) => InProgress
+        case None    => Terminated
+    }
+    
+    
+    final override def outerDelegate = InProgress
+    
+    
+    final override def onError(err: String) = {
+        var result = InError(err)
+        reset(result)
+        throwOnError(err)
+        result
+    }
+    
+    
     final override def outerError(msg: String): OuterTransition = InError(msg)
     
     
+    // Enter the state machine
+    onEnter(())
+    
+    // Upon termination, reset it
     terminate := { e => reset(e); Terminated } freeze
     
-    onEnter(())
 }
 
 

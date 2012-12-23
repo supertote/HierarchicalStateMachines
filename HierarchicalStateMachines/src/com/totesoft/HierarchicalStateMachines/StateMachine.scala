@@ -82,6 +82,10 @@ trait StateMachine extends StateContainer {
       * 
       * To change this behavior, a top-level state machine can override this method to throw an exception
       * instead
+      * 
+      * @param err The error to be handled
+      * 
+      * @return The input error if not overriden
       */
     protected def throwOnError(err: DispatchError): Unit = {}
     

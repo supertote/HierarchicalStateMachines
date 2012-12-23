@@ -356,7 +356,7 @@ trait StateContainer extends State {
     /**
       * Get an InnerTransition corresponding to the specified error
       * 
-      * @param msg: the error message
+      * @param err The specified error
       */
     protected[HierarchicalStateMachines] final def innerError(err: DispatchError): InnerTransition = Error(err)
     

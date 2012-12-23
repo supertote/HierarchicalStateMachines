@@ -273,7 +273,7 @@ trait State {
     /**
       * Get an InnerTransition corresponding to the specified error
       * 
-      * @param err: the specified error
+      * @param err The specified error
       */
     protected[HierarchicalStateMachines] def innerError(err: DispatchError): InnerTransition
     
@@ -281,7 +281,7 @@ trait State {
     /**
       * Get an OuterTransition corresponding to the specified error
       * 
-      * @param msg: the specified error
+      * @param msg The specified error
       */
     protected[HierarchicalStateMachines] def outerError(err: DispatchError): OuterTransition
     

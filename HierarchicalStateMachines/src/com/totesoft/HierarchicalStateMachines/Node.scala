@@ -3,7 +3,7 @@ package com.totesoft.HierarchicalStateMachines
 
 /**
   * The Node trait defines the common base of all elements composing a state machine hierarchy:
-  * i.e. [[RootStateMachine]]s, [[StateContainer.ChildState]]s and [[StateContainer.ChildStateMachine]]s
+  * i.e. [[StateMachine]]s, [[StateContainer.State]]s and [[StateContainer.StateMachine]]s
   */
 trait Node {
     
@@ -27,10 +27,10 @@ trait Node {
       * }}}
       * 
       * Note that overriding/augmenting the methods can fail if it has been previously disabled with
-      * a call to method '''freeze'''. In this case, the behavior depends on the [[RootStateMachine]]
+      * a call to method '''freeze'''. In this case, the behavior depends on the [[StateMachine]]
       * of which this instance is part of:
       * - by default the overriding/augmentation attempt will be simply ignored;
-      * - a sub-class of [[RootStateMachine]] can decide to change that (e.g. throwing an exception)
+      * - a sub-class of [[StateMachine]] can decide to change that (e.g. throwing an exception)
       * by overriding method '''cantOverrideFrozenHandler''' method
       *
       * @constructor Construct a new instance which encapsulates the specified method
@@ -139,7 +139,7 @@ trait Node {
           * @inheritdoc
           * 
           * Traces will be printed before and after the execution of the encapsulated method if the
-          * [[RootStateMachine]] containing this instance is configured to do so
+          * [[StateMachine]] containing this instance is configured to do so
           */
         override def run(i: I) = {
             root.eventLog(message + i + " in " + Node.this)
@@ -156,7 +156,7 @@ trait Node {
       * When triggered, the method will be passed the event which triggered the change.
       * 
       * @constructor Construct a new instance which, if not override, does nothing. Traces will be printed
-      * before triggering the encapsulated method if the [[RootStateMachine]] containing this instance is
+      * before triggering the encapsulated method if the [[StateMachine]] containing this instance is
       * configured to do so.
       * 
       * @param kind A value representing the type of lifecycle event, for tracing
@@ -166,7 +166,7 @@ trait Node {
         /**
           * @inheritdoc
           * 
-          * Traces will be printed before the encapsulated method if the [[RootStateMachine]] containing
+          * Traces will be printed before the encapsulated method if the [[StateMachine]] containing
           * this instance is configured to do so
           */
         override def run(e: Any) = {
@@ -182,6 +182,13 @@ trait Node {
       * from its container
       */
     type OuterTransition
+    
+    
+    /**
+      * Represent the type of transition that is computed when firing an event into this instance
+      * internally
+      */
+    type InnerTransition
     
     
     /**
@@ -210,6 +217,11 @@ trait Node {
     val exit = new LifecycleHandler("Exiting")
     
     /**
+      * The event handler of this state machine used to handle input events
+      */
+    val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => innerError("No event handler defined in " + this))
+    
+    /**
       * The path of this instance starting at it's '''root'''
       */
     final lazy val path: String =
@@ -220,7 +232,7 @@ trait Node {
     
     
     /**
-      * The [[RootStateMachine]] of which this instance is a part
+      * The top level [[StateMachine]] of which this instance is a part
       */
     final lazy val root: StateMachine =
         container match {
@@ -262,6 +274,14 @@ trait Node {
       * @param evt The event to pass to the enter method
       */
     protected[HierarchicalStateMachines] def onEvent(evt : Any): OuterTransition
+    
+    
+    /**
+      * Get an InnerTransition corresponding to the specified error
+      * 
+      * @param msg: the error message
+      */
+    protected[HierarchicalStateMachines] def innerError(msg: String): InnerTransition
     
     
     /**

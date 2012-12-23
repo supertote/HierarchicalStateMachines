@@ -1,6 +1,9 @@
 package com.totesoft.HierarchicalStateMachines
 
-
+/**
+  * A specialization of [[NodeContainer]] which can be mixed into a class/trait to
+  * construct top-level state machines
+  */
 trait StateMachine extends NodeContainer {
     
     type ExitEvent = Unit
@@ -8,12 +11,31 @@ trait StateMachine extends NodeContainer {
     type OuterTransition = Status
     
     
+    /**
+      * The status returned when firing an event into a top-level state machine
+      */
     sealed trait Status
+    /**
+      * Everything went well and the sate machine's current state is unset
+      */
     case object Terminated extends Status
+    /**
+      * Everything went well and the sate machine's current state is set
+      */
     case object InProgress extends Status
+    /**
+      * Some error was encountered
+      */
     case class InError(error: String) extends Status
     
     
+    /**
+      * Fire the specified event into the state machine
+      * 
+      * @param evt: The event
+      * 
+      * @return the status representing the result of firing the event
+      */
     final def fire(evt : Any): Status = {
         eventLog("Firing " + evt + " in " + StateMachine.this + " {")
         
@@ -71,16 +93,10 @@ trait StateMachine extends NodeContainer {
     }
     
     
-    private[this] def doTerminate(on: Any): Status = {
-        reset(on)
-        Terminated
-    }
-    
-    
     final override def outerError(msg: String): OuterTransition = InError(msg)
     
     
-    terminate := { e => doTerminate(e) } freeze
+    terminate := { e => reset(e); Terminated } freeze
     
     onEnter(())
 }

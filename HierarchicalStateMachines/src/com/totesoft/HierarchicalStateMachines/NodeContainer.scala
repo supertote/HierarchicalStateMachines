@@ -7,7 +7,7 @@ trait Exitable[T] {
 
 /**
   * The NodeContainer trait defines the attributes and methods common to all [[Node]]s which contain
-  * sub nodes, i.e. [[RootStateMachine]]s and [[Container.ChildStateMachine]]s
+  * sub nodes, i.e. [[StateMachine]]s and [[Container.StateMachine]]s
   */
 trait NodeContainer extends Node {
     
@@ -79,11 +79,6 @@ trait NodeContainer extends Node {
         
         type InnerTransition = NodeContainer.this.InnerTransition
         
-	    /**
-	      * The event handler of this state machine used to handle input events
-	      */
-        val events = new EventHandler[Any, OuterTransition]("    Handling ", _ => outerError("No event handler defined in " + this))
-        
         
         final override def onEvent(evt : Any) = events.run(evt)
         
@@ -93,6 +88,8 @@ trait NodeContainer extends Node {
         
         final override def onExit(evt: Any) = exit.run(evt)
         
+	    final override def innerError(msg: String): OuterTransition = Error(msg)
+	    
     }
     
     
@@ -150,11 +147,6 @@ trait NodeContainer extends Node {
       */
     private[this] var nexState:  Option[Child] = None
     
-    
-    /**
-      * The event handler of this state machine used to handle input events
-      */
-    val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => innerError("No event handler defined in " + NodeContainer.this))
     /**
       * The event handler of this state machine used to handle exit events
       */

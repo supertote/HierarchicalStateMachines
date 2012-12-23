@@ -42,8 +42,6 @@ trait State {
       */
     sealed abstract class Handler[I, O](default: I => O) {
         
-        import scala.collection.mutable.ListBuffer
-        
         private[this] var frozen: Boolean       = false
         private[this] var before: I => Unit     = { i => }
         private[this] var handler: I => O       = default

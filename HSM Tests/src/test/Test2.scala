@@ -10,9 +10,6 @@ case object TO_STATE_2 extends SubSMExit
 
 object Test2 {
 
-//    class TestSM extends RootStateMachine("TestSM") with FullConsoleLogging
-    
-    
     val rootSm: StateMachine = new StateMachine with FullConsoleLogging {
 	    lazy val name = "TestSM"
 	    

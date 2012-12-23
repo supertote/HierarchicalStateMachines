@@ -59,7 +59,7 @@ trait State {
           * 
           * @param i The input parameter
           * 
-          * @return The result of the encapsulated last handler call
+          * @return The result of the encapsulated handler call
            */
         protected def run(i: I): O = {
             before(i)
@@ -77,9 +77,7 @@ trait State {
           * @return The current instance so that a call to '''freeze''' can be chained
           */
         def <<(h: I => Unit): Handler[I, O] = {
-            if (frozen) root.cantOverrideFrozenHandler("")
-            else        before = { i => h(i); before(i) }
-            
+            before = { i => h(i); before(i) }
             this
         }
         
@@ -107,9 +105,7 @@ trait State {
           * @return The current instance so that a call to '''freeze''' can be chained
           */
         def >>(h: (I, O) => Unit): Handler[I, O] = {
-            if (frozen) root.cantOverrideFrozenHandler("")
-            else        after = { (i, o) => after(i, o); h(i, o) }
-            
+            after = { (i, o) => after(i, o); h(i, o) }
             this
         }
         

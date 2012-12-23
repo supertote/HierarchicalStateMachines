@@ -1,7 +1,7 @@
 package com.totesoft.HierarchicalStateMachines
 
 trait PartialEventHandler {
-    this : Container =>
+    this : NodeContainer =>
     
     private[this] var handlers: List[PartialFunction[Any, InnerTransition]] = List()
     

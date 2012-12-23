@@ -231,7 +231,7 @@ trait Node {
     /**
       * The [[StateContainer]] of which this instance is a a child
       */
-    def container: Option[Container]
+    def container: Option[NodeContainer]
     
     
     /**

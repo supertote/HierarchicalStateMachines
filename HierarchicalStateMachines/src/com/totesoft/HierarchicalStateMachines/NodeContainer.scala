@@ -1,36 +1,78 @@
 package com.totesoft.HierarchicalStateMachines
 
 /**
-  * The Container trait defines the attributes and methods common to all [[Nodes]] which contain
-  * other nodes, i.e. [[RootStateMachine]]s and [[Container.ChildStateMachine]]
+  * The NodeContainer trait defines the attributes and methods common to all [[Node]]s which contain
+  * sub nodes, i.e. [[RootStateMachine]]s and [[Container.ChildStateMachine]]s
   */
-trait Container extends Node {
+trait NodeContainer extends Node {
     
+    /**
+      * Define the events which can lead to terminating this state machine
+      */
     type ExitEvent
     
-    type SubState = ChildNode
     
-    
+    /**
+      * Define the Transitions which can be performed within this state machine
+      */
     sealed trait InnerTransition
+    /**
+      * Done means the event has been handled by sub states and nothing needs to
+      * be done; the state machine will also return Done to its container
+      */
     case object Done                      extends InnerTransition
+    /**
+      * Delegate means the event has not been handled by sub states; the event will be
+      * re-dispatched into this state machine; if the resulting transition is also
+      * Delegate, the state machine will return Delegate to its container
+      */
     case object Delegate                  extends InnerTransition
-    case class  Error(err: String)        extends InnerTransition
-    case class  MoveTo(state: SubState)   extends InnerTransition
-    case class  Resume(state: SubState)   extends InnerTransition
+    /**
+      * MoveTo(state) means that the current state of this state machine must be changed
+      * to the specified state in which an Enter event will be fired; the state machine will
+      * return Done to its container
+      */
+    case class  MoveTo(state: Child)      extends InnerTransition
+    /**
+      * Resume(state) means that the current state of this state machine must be changed
+      * to the specified state in which a Resume event will be fired; the state machine will
+      * return Done to its container
+      */
+    case class  Resume(state: Child)      extends InnerTransition
+    /**
+      * Terminate(evt) means that this state machine must be terminated; in this case, the
+      * specified event will be re-dispatched into this state machine's '''terminate'''
+      * event handler and the resulting value will be returned to the container
+      */
     case class  Terminate(evt: ExitEvent) extends InnerTransition
+    /**
+      * Error(err) means that some error occurred during input event processing; in this
+      * case, the specified error message will be re-dispatched into this state machines's
+      * '''onError''' method and the resulting value will be returned to the container
+      */
+    case class  Error(err: String)        extends InnerTransition
     
     
-    sealed trait ChildNode extends Node {
+    /**
+      * A trait defining the common attributes of sub states and sub state machines of a NodeContainer.
+      */
+    sealed trait Child extends Node {
         
-        type OuterTransition = Container.this.InnerTransition
+        type OuterTransition = NodeContainer.this.InnerTransition
         
-        final override def container = Some(Container.this)
+        final override def container = Some(NodeContainer.this)
         
     }
     
     
-    trait ChildState extends ChildNode {
+    /**
+      * A trait which can be mixed into a class/trait to define a sub state of a NodeContainer.
+      */
+    trait ChildState extends Child {
         
+	    /**
+	      * The event handler of this state machine used to handle input events
+	      */
         val events = new EventHandler[Any, OuterTransition]("    Handling ", _ => Error("No event handler defined in " + this))
         
         
@@ -45,30 +87,51 @@ trait Container extends Node {
     }
     
     
+    /**
+      * A Concrete implementation of a sub state
+      * 
+      * @constructor Construct a new sub state with the specified name and history type
+      * 
+      * @param name The name of the new sub state machine
+      * @param historyType The history type of the new state machine
+      */
     class State(override val name: String, override val historyType: HistoryType = HistoryType.NONE) extends ChildState {
         events := { _ => Delegate }
     }
     
     
-    trait ChildStateMachine extends ChildNode {
-        this : Container =>
+    /**
+      * A trait which can be mixed into a class/trait to define a sub state machine of a NodeContainer.
+      * 
+      * Note that when mixing this trait you must also mix the NodeContainer trait
+      */
+    trait ChildStateMachine extends Child {
+        this : NodeContainer =>
         
             
-        final override def outerDelegate = Container.this.Delegate
+        final override def outerDelegate = NodeContainer.this.Delegate
         
         
-        final override def outerDone = Container.this.Done
+        final override def outerDone = NodeContainer.this.Done
         
         
-        override def onError(err: String) = Container.this.Error(err)
+        override def onError(err: String) = NodeContainer.this.Error(err)
         
         
-        override def terminateNotSet = Container.this.Error("No terminate handler defined in " + this)
+        override def terminateNotSet = NodeContainer.this.Error("No terminate handler defined in " + this)
         
     }
     
     
-    class StateMachine[T](override val name: String, override val historyType: HistoryType = HistoryType.NONE) extends Container with ChildStateMachine {
+    /**
+      * A Concrete implementation of a sub state machine
+      * 
+      * @constructor Construct a new sub state machine with the specified name and history type
+      * 
+      * @param name The name of the new sub state machine
+      * @param historyType The history type of the new state machine
+      */
+    class StateMachine[T](override val name: String, override val historyType: HistoryType = HistoryType.NONE) extends NodeContainer with ChildStateMachine {
         type ExitEvent = T
     }
     
@@ -76,25 +139,25 @@ trait Container extends Node {
     /**
       * The current sub-state of this state machine
       */
-    protected[HierarchicalStateMachines] var currentState: Option[SubState] = None
+    protected[HierarchicalStateMachines] var currentState: Option[Child] = None
     /**
       * The last sub-state of this state machine saved when this state machine was exited
       */
-    private[this] var historyState: Option[SubState] = None
+    private[this] var historyState: Option[Child] = None
     /**
       * The previous sub-state of this state machine
       */
-    private[this] var prevState: Option[SubState] = None
+    private[this] var prevState: Option[Child] = None
     /**
       * The next sub-state of this state machine
       */
-    private[this] var nexState:  Option[SubState] = None
+    private[this] var nexState:  Option[Child] = None
     
     
     /**
       * The event handler of this state machine used to handle input events
       */
-    val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => Error("No event handler defined in " + Container.this))
+    val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => Error("No event handler defined in " + NodeContainer.this))
     /**
       * The event handler of this state machine used to handle exit events
       */
@@ -107,7 +170,7 @@ trait Container extends Node {
       * 
       * @return the previous sub-state of this state machine or none if no state change is pending
       */
-    protected final def previousState: Option[SubState] = prevState
+    protected final def previousState: Option[Child] = prevState
     
     
     /**
@@ -116,7 +179,7 @@ trait Container extends Node {
       * 
       * @return the next sub-state of this state machine or none if no state change is pending
       */
-    protected final def nextState: Option[SubState] = nexState
+    protected final def nextState: Option[Child] = nexState
     
     
     /**
@@ -129,19 +192,26 @@ trait Container extends Node {
       */
     final def deepState: Node = {
         currentState match {
-            case Some(s : Container) => s.deepState
+            case Some(s : NodeContainer) => s.deepState
             case Some(s)             => s
-            case _                   => this
+            case _                   => NodeContainer.this
         }
     }
     
     
+    // TODO: Comment
     protected[HierarchicalStateMachines] def terminateNotSet: OuterTransition
     
     
+    /**
+      * Get the equivalent of a Done transition in this state machine's container
+      */
     protected[HierarchicalStateMachines] def outerDone: OuterTransition
     
     
+    /**
+      * Get the equivalent of a Delegate transition in this state machine's container
+      */
     protected[HierarchicalStateMachines] def outerDelegate: OuterTransition
     
     
@@ -167,7 +237,7 @@ trait Container extends Node {
       * 
       * @return The initial sub-state or None if this state machine does not have an initial sub-state
       */
-    def initialState(evt: Any): Option[SubState] = None
+    def initialState(evt: Any): Option[Child] = None
     
     
     /**
@@ -178,7 +248,7 @@ trait Container extends Node {
       * @param newState The new sub-state which will become the current sub-state of this state machine
       * @param lifecycleChange A method which will trigger a lifecycle event into the new sub-state
       */
-    private[this] def changeState(evt: Any, newState: SubState, lifecycleChange: (SubState, Any) => Unit): Unit = {
+    private[this] def changeState(evt: Any, newState: Child, lifecycleChange: (Child, Any) => Unit): Unit = {
         nexState = if (newState != null) Some(newState) else None
         
         currentState match {
@@ -212,8 +282,8 @@ trait Container extends Node {
                 case Done =>
                     outerDone
                 case Delegate =>
-                    if (Container.this eq node) outerDelegate
-                    else performTransition(evt, Container.this, e => events.run(evt))
+                    if (NodeContainer.this eq node) outerDelegate
+                    else performTransition(evt, NodeContainer.this, e => events.run(evt))
                 case MoveTo(newState) =>
                     changeState(evt, newState, (s, e) => s.onEnter(e))
                     outerDone
@@ -268,7 +338,7 @@ trait Container extends Node {
             case Some(subState) =>
                 performTransition(evt, subState, e => subState.onEvent(e))
             case None =>
-                performTransition(evt, Container.this, e => events.run(e))
+                performTransition(evt, NodeContainer.this, e => events.run(e))
         }
     }
     

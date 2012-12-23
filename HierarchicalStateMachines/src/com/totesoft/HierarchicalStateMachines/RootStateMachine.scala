@@ -1,7 +1,7 @@
 package com.totesoft.HierarchicalStateMachines
 
 
-trait RootStateMachine extends Container {
+trait RootStateMachine extends NodeContainer {
     
     type ExitEvent = Unit
     

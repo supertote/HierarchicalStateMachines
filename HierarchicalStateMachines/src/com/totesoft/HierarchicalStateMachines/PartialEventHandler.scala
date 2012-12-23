@@ -14,7 +14,7 @@ trait PartialEventHandler {
     
     events := { e => handlers.find(_.isDefinedAt(e)) match {
         case Some(handler) => handler(e)
-        case None => Error("Unhandled Event " + e)
+        case None          => Error(ErrorMessage("Unhandled Event " + e + " in " + this))
     }} freeze
     
 }

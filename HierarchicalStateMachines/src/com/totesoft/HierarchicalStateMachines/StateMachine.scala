@@ -26,7 +26,7 @@ trait StateMachine extends StateContainer {
     /**
       * Some error was encountered
       */
-    case class InError(error: String) extends Status
+    case class InError(err: DispatchError) extends Status
     
     
     /**
@@ -83,7 +83,7 @@ trait StateMachine extends StateContainer {
       * To change this behavior, a top-level state machine can override this method to throw an exception
       * instead
       */
-    protected def throwOnError(err : String): Unit = {}
+    protected def throwOnError(err: DispatchError): Unit = {}
     
     
     /**
@@ -108,7 +108,7 @@ trait StateMachine extends StateContainer {
     final override def outerDelegate = InProgress
     
     
-    final override def onError(err: String) = {
+    final override def onError(err: DispatchError) = {
         var result = InError(err)
         reset(result)
         throwOnError(err)
@@ -116,7 +116,7 @@ trait StateMachine extends StateContainer {
     }
     
     
-    final override def outerError(msg: String): OuterTransition = InError(msg)
+    final override def outerError(err: DispatchError): OuterTransition = InError(err)
     
     
     // Enter the state machine

@@ -213,7 +213,7 @@ trait State {
     /**
       * The event handler of this state machine used to handle input events
       */
-    val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => innerError("No event handler defined in " + State.this))
+    val events = new EventHandler[Any, InnerTransition]("    Handling ", _ => innerError(ErrorMessage("No event handler defined in " + State.this)))
     
     /**
       * The path of this instance starting at it's '''root'''
@@ -273,17 +273,17 @@ trait State {
     /**
       * Get an InnerTransition corresponding to the specified error
       * 
-      * @param msg: the error message
+      * @param err: the specified error
       */
-    protected[HierarchicalStateMachines] def innerError(msg: String): InnerTransition
+    protected[HierarchicalStateMachines] def innerError(err: DispatchError): InnerTransition
     
     
     /**
       * Get an OuterTransition corresponding to the specified error
       * 
-      * @param msg: the error message
+      * @param msg: the specified error
       */
-    protected[HierarchicalStateMachines] def outerError(msg: String): OuterTransition
+    protected[HierarchicalStateMachines] def outerError(err: DispatchError): OuterTransition
     
     
     override def toString = path

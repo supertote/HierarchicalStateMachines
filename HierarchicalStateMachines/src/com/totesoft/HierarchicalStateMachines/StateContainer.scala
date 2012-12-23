@@ -47,10 +47,10 @@ trait StateContainer extends State {
     case class  Terminate(evt: ExitEvent) extends InnerTransition
     /**
       * Error(err) means that some error occurred during input event processing; in this
-      * case, the specified error message will be re-dispatched into this state machines's
+      * case, the specified error be re-dispatched into this state machines's
       * '''onError''' method and the resulting value will be returned to the container
       */
-    case class  Error(err: String)        extends InnerTransition
+    case class  Error(err: DispatchError) extends InnerTransition
     
     
     /**
@@ -62,7 +62,7 @@ trait StateContainer extends State {
         
         final override def container = Some(StateContainer.this)
         
-	    final override def outerError(msg: String): OuterTransition = Error(msg)
+	    final override def outerError(err: DispatchError): OuterTransition = Error(err)
 	    
     }
     
@@ -83,7 +83,7 @@ trait StateContainer extends State {
         
         final override def onExit(evt: Any) = exit.run(evt)
         
-	    final override def innerError(msg: String): OuterTransition = Error(msg)
+	    final override def innerError(err: DispatchError): OuterTransition = Error(err)
 	    
     }
     
@@ -117,7 +117,7 @@ trait StateContainer extends State {
         final override def outerDone = StateContainer.this.Done
         
         
-        override def onError(err: String) = StateContainer.this.Error(err)
+        override def onError(err: DispatchError) = StateContainer.this.Error(err)
         
     }
     
@@ -150,7 +150,7 @@ trait StateContainer extends State {
     /**
       * The event handler of this state machine used to handle exit events
       */
-    val terminate = new EventHandler[ExitEvent, OuterTransition]("    Terminating ", _ => outerError("No terminate handler defined in " + StateContainer.this))
+    val terminate = new EventHandler[ExitEvent, OuterTransition]("    Terminating ", _ => outerError(ErrorMessage("No terminate handler defined in " + this)))
     
     
     /**
@@ -206,11 +206,11 @@ trait StateContainer extends State {
       * State machines can override this method to recover from errors which occur during
       * event dispatching
       * 
-      * @param err The error message
+      * @param err The error
       * 
       * @return The resulting transition
       */
-    def onError(err: String): OuterTransition
+    def onError(err: DispatchError): OuterTransition
     
     
     /**
@@ -283,9 +283,9 @@ trait StateContainer extends State {
         }
         catch {
             case me : MatchError =>
-                onError("Unhandled event " + evt + " in " + path)
-            case e : Throwable =>
-                onError("Unhandled exception\n" + e.toString)
+                onError(ErrorMessage("Unhandled event " + evt + " in " + path))
+            case e : Exception =>
+                onError(UnhandledException(e))
         }
     }
     
@@ -358,7 +358,7 @@ trait StateContainer extends State {
       * 
       * @param msg: the error message
       */
-    protected[HierarchicalStateMachines] final def innerError(msg: String): InnerTransition = Error(msg)
+    protected[HierarchicalStateMachines] final def innerError(err: DispatchError): InnerTransition = Error(err)
     
 }
 
